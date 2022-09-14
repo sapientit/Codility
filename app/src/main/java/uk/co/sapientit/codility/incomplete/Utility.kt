@@ -1,5 +1,6 @@
 package uk.co.sapientit.templateapp.incomplete
 
+import java.util.HashSet
 import kotlin.random.Random
 
 class Utility {
@@ -122,6 +123,9 @@ class Utility {
         return k
     }
     class CountingTree(val size: Int) { //Fenwick tree
+        /* WARNING
+        This tree is 1 indexed - never set value 0.
+         */
         val powers = ArrayList<Int>()
         val counts = IntArray(size + 1)
         init {
@@ -131,6 +135,23 @@ class Utility {
                 current += current
                 powers.add(current)
             }
+        }
+        constructor(source: IntArray) : this(source.size) {
+            val count = sumLevel(powers.lastIndex, 0, source)
+            if (powers[powers.lastIndex] < counts.size) {
+                counts[powers[powers.lastIndex]] = count
+            }
+        }
+        fun sumLevel(level: Int, current: Int, source: IntArray): Int {
+            if (current >= source.size) return 0
+            if (level == 0) {
+                return source[current]
+            }
+            val valueFirst = sumLevel(level - 1, current, source)
+            val toSet = current + powers[level - 1]
+            if (toSet < counts.size)
+                counts[toSet] = valueFirst
+            return valueFirst +  sumLevel(level - 1, current + powers[level - 1], source)
         }
         fun increment(num: Int, count: Int = 1) {
             var current = num
@@ -1152,4 +1173,76 @@ class RedBlack() {
             traverseNode(node.right, list, nextLevel, string + node.value + colour + '+', print)
         }
     }
+}
+class Dinic (val flow: Array<IntArray>, val source: Int, val drain: Int) {
+    // Max flow algorithm
+    // WARNING!!!!!!!!!!!!  - I think I delete a link that I shouldn't.
+    val links = Array(flow.size){ HashSet<Int>() }
+    var maxFlow = 0
+    init {
+        for (i in flow.indices) {
+            for (j in flow.indices) {
+                if (flow[i][j] != 0) {
+                    links[i].add(j)
+                }
+            }
+        }
+        links[drain].clear() // This must be the end - don't want to flow from drain
+        var newTotal = findPaths()
+        while (newTotal > 0) {
+            maxFlow += newTotal
+            newTotal = findPaths()
+        }
+    }
+    fun findPaths() : Int{
+        val depth = IntArray(flow.size)
+        depth[source] = 1
+        val queue = java.util.ArrayDeque<Int>()
+        queue.addFirst(source)
+        while (queue.isNotEmpty()) {
+            val current = queue.removeLast()
+            for (link in links[current]) {
+                if (depth[link] == 0) {
+                    depth[link] = depth[current] + 1
+                    queue.addFirst(link)
+                }
+            }
+        }
+        if (depth[drain] == 0) return 0
+        return followPath(source,depth, Int.MAX_VALUE)
+    }
+    fun followPath(node: Int, depth: IntArray, maxFlow: Int) : Int{
+        if (node == drain) return maxFlow
+        var used = 0
+        val iterator = links[node].iterator()
+        while (iterator.hasNext()) {
+            val link = iterator.next()
+            if (depth[link] > depth[node]) {
+                val newUsed = followPath(link, depth, minOf(maxFlow - used, flow[node][link]))
+                used += newUsed
+                if (newUsed == 0) {
+                    iterator.remove() //  WARNING - I think this is wrong!!!
+                } else {
+                    flow[node][link] -= newUsed
+                    if (flow[node][link] == 0) {
+                        iterator.remove()
+                    }
+                    flow[link][node] += newUsed
+                }
+            }
+        }
+        return used
+
+    }
+    fun print() {
+        println("Max flow " + maxFlow)
+        for (i in flow.indices) {
+            println()
+            for (j in flow.indices) {
+                print(flow[i][j])
+                print(' ')
+            }
+        }
+    }
+
 }
