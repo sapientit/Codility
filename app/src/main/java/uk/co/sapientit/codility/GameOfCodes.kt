@@ -28,7 +28,7 @@ class GameOfCodes {
     We take the minimum of min3 or the existing value of costTo[1].  We then use this value
     to calculate costTo for the next occurence of this character.
     min1 is then either costTo, or it is the previous version of min1 + 1 (we delete this
-    character as well).  
+    character as well).
 
      */
 
